@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INNO EDUCATION - Advance CRM</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f1c40f;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --security-color: #e67e22;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-color); color: #333; display: flex; min-height: 100vh; }
+
+        /* LOADING SCREEN */
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(44, 62, 80, 0.9); z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; color: white; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* LOGIN SAHIFASI */
+        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center; }
+        .login-box h2 { margin-bottom: 20px; color: var(--primary-color); }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+        .login-box button { width: 100%; padding: 12px; background: var(--accent-color); color:white; border:none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .login-box button:hover { background: #2980b9; }
+        .login-error { color: var(--danger-color); margin-bottom: 15px; font-size: 14px; display: none; }
+
+        /* Sidebar Navigatsiya */
+        .sidebar { width: 260px; height: 100vh; background-color: var(--primary-color); color: white; padding: 20px; position: fixed; z-index: 10; display: none; }
+        .sidebar h2 { text-align: center; margin-bottom: 5px; font-size: 22px; }
+        .user-badge { text-align: center; font-size: 13px; color: #cbd5e1; margin-bottom: 25px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        
+        .sidebar .nav-btn { width: 100%; padding: 12px 15px; background: none; border: none; color: #ecf0f1; text-align: left; font-size: 16px; cursor: pointer; border-radius: 5px; margin-bottom: 10px; transition: 0.3s; display: block; }
+        .sidebar .nav-btn:hover, .sidebar .nav-btn.active { background-color: var(--accent-color); color: white; }
+        .logout-btn { width: 100%; padding: 12px 15px; background-color: #c0392b; border: none; color: white; text-align: center; font-size: 16px; cursor: pointer; border-radius: 5px; margin-top: 30px; font-weight: bold; }
+
+        /* Asosiy Kontent */
+        .main-content { margin-left: 260px; padding: 40px; width: calc(100% - 260px); min-height: 100vh; display: none; }
+        
+        /* TAB TIZIMI */
+        .tab-content { display: none !important; }
+        .tab-content.active { display: block !important; }
+        h1, h2 { margin-bottom: 25px; color: var(--primary-color); }
+
+        /* Kurslar kartochkalari */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid var(--accent-color); position: relative; cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+        .card.history-card { border-top-color: #95a5a6; }
+        .card h3 { margin-bottom: 10px; color: var(--primary-color); width: 70%; }
+        .card p { margin-bottom: 8px; font-size: 14px; color: #666; }
+        
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+
+        .card .btn-complete { position: absolute; top: 20px; right: 20px; }
+
+        /* MODAL TIZIMI */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+        .modal-window { background: white; width: 100%; max-width: 950px; max-height: 85vh; border-radius: 8px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow-y: auto; position: relative; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .close-modal { position: absolute; top: 20px; right: 20px; font-size: 28px; cursor: pointer; color: #aaa; transition: 0.2s; }
+        .close-modal:hover { color: var(--danger-color); }
+
+        /* Ichki Tablar */
+        .inner-tabs { display: flex; gap: 15px; margin: 20px 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .inner-tab-btn { padding: 8px 20px; background: #eee; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .inner-tab-btn.active { background: var(--accent-color); color: white; }
+        .inner-section { display: none !important; margin-top: 15px; }
+        .inner-section.active { display: block !important; }
+
+        /* Excel uslubidagi jadval */
+        .excel-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; margin-bottom: 20px; }
+        .excel-table th, .excel-table td { border: 1px solid #ddd; padding: 10px 15px; text-align: left; font-size: 14px; }
+        .excel-table th { background-color: #f2f2f2; color: var(--primary-color); font-weight: 600; position: sticky; top: 0; }
+        .excel-table tr:hover { background-color: #f9f9f9; }
+        .excel-table input[type="text"], .excel-table select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
+
+        /* Hujjatlar ombori */
+        .folder-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
+        .folder-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px 20px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.03); transition: 0.2s; }
+        .folder-card:hover { background: #f0f7fc; border-color: var(--accent-color); transform: translateY(-2px); }
+        .folder-icon { font-size: 50px; color: #f39c12; margin-bottom: 10px; }
+
+        .form-group { margin-bottom: 15px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+        .badge-online { background-color: #9b59b6; }
+        .badge-offline { background-color: #e67e22; }
+
+        .columns-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+        @media (max-width: 768px) { .columns-container { grid-template-columns: 1fr; } }
+        .student-column { background: #fafbfc; border: 1px dashed #ccc; padding: 15px; border-radius: 6px; }
+        .student-column h4 { margin-bottom: 10px; color: var(--primary-color); border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+
+        .acca-course-block { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px; border-left: 5px solid var(--accent-color); }
+        .acca-course-block h3 { color: var(--primary-color); margin-bottom: 10px; font-size: 18px; }
+        
+        /* Loglar uchun dizayn */
+        .log-badge { padding: 3px 8px; border-radius: 4px; color: white; font-size: 11px; font-weight: bold; }
+        
+        /* 🔒 ROLE BOSHQARUVI (CSS) */
+        .admin-only, .admin-only-cell, .kamoliddin-only { display: none !important; }
+
+        body.admin-role .admin-only { display: block !important; }
+        body.admin-role button.admin-only { display: inline-block !important; }
+        body.admin-role button.nav-btn.admin-only { display: block !important; }
+        body.admin-role .admin-only-cell { display: table-cell !important; }
+        body.admin-role .inner-tab-btn.admin-only { display: inline-block !important; }
+
+        /* Faqat kamoliddin kirganda ishlaydigan klas */
+        body.kamoliddin-user .kamoliddin-only { display: block !important; }
+        body.kamoliddin-user button.nav-btn.kamoliddin-only { display: block !important; }
+    </style>
+</head>
+<body>
+
+    <!-- SINKRONIZATSIYA LOADING EKANI -->
+    <div id="loading-screen" class="loading-overlay">
+        <div class="spinner"></div>
+        <h3 id="loading-text">Markaziy bazaga ulanmoqda...</h3>
+    </div>
+
+    <div id="login-screen" class="login-overlay">
+        <div class="login-box">
+            <h2>INNO CRM Tizimi</h2>
+            <div id="login-error-msg" class="login-error">Login yoki parol noto'g'ri!</div>
+            <input type="text" id="usernameInput" placeholder="Loginni kiriting" onkeydown="if(event.key==='Enter') handleLogin()">
+            <input type="password" id="passwordInput" placeholder="Parolni kiriting" onkeydown="if(event.key==='Enter') handleLogin()">
+            <button onclick="handleLogin()">Tizimga kirish</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="app-sidebar">
+        <h2>INNO CRM</h2>
+        <div class="user-badge" id="user-display-name">Foydalanuvchi: Yuklanmoqda...</div>
+        <button id="btn-faol-kurslar" class="nav-btn active" onclick="switchTab('faol-kurslar')">🟢 Faol Kurslar</button>
+        <button id="btn-tarix" class="nav-btn admin-only" onclick="switchTab('tarix')">📁 TARIX</button>
+        <button id="btn-oqvchilar" class="nav-btn" onclick="switchTab('oqvchilar')">🗂 Hujjatlar Ombori</button>
+        <button id="btn-acca-table" class="nav-btn admin-only" onclick="switchTab('acca-table')">📊 ACCA Login/Parol</button>
+        <button id="btn-security-logs" class="nav-btn kamoliddin-only" style="border-left: 4px solid var(--security-color);" onclick="switchTab('security-logs')">🔒 Xavfsizlik Loglari</button>
+        <button class="logout-btn" onclick="handleLogout()">🚪 Tizimdan chiqish</button>
+    </div>
+
+    <div class="main-content" id="app-content">
+
+        <div id="faol-kurslar" class="tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h1>Hozirgi Faol Kurslar</h1>
+                <button class="btn btn-primary" onclick="loadFromTelegram(true)">🔄 Yangilash (Sinxronizatsiya)</button>
+            </div>
+            <p style="color: #666; margin-top: -15px; margin-bottom: 20px;">O'quvchilar ro'yxati va ma'lumotlarni ko'rish uchun kurs ustiga bosing.</p>
+            
+            <div class="form-group admin-only" id="add-course-section">
+                <h3>Yangi Kurs Qo'shish</h3>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    <input type="text" id="courseName" placeholder="Kurs nomi (Masalan: F9/FM)">
+                    <select id="courseMonth">
+                        <option value="Yanvar">Yanvar</option><option value="Fevral">Fevral</option>
+                        <option value="Mart">Mart</option><option value="Aprel">Aprel</option>
+                        <option value="May">May</option><option value="Iyun">Iyun</option>
+                        <option value="Iyul">Iyul</option><option value="Avgust">Avgust</option>
+                        <option value="Sentabr">Sentabr</option><option value="Oktabr">Oktabr</option>
+                        <option value="Noyabr">Noyabr</option><option value="Dekabr">Dekabr</option>
+                    </select>
+                    <select id="courseTeacher">
+                        <option value="Umidjon Tulaev">Umidjon Tulaev</option>
+                        <option value="Ohunjon Xasanboyev">Ohunjon Xasanboyev</option>
+                        <option value="Xamidullo Abduxoshimov">Xamidullo Abduxoshimov</option>
+                        <option value="Ruzikulov Otabek">Ruzikulov Otabek</option>
+                        <option value="Kimsannazarov Ibodullo">Kimsannazarov Ibodullo</option>
+                        <option value="Rahmonov Asror">Rahmonov Asror</option>
+                        <option value="Ibroximov Maqsud">Ibroximov Maqsud</option>
+                    </select>
+                    <button class="btn btn-success" onclick="addCourse()">Qo'shish</button>
+                </div>
+            </div>
+
+            <div class="grid-container" id="active-courses-grid"></div>
+        </div>
+
+        <div id="tarix" class="tab-content">
+            <h1>📁 TARIX (Tugagan guruhlar arxivi)</h1>
+            <div class="grid-container" id="history-courses-grid"></div>
+        </div>
+
+        <div id="oqvchilar" class="tab-content">
+            <h1>🗂 Hujjatlar Ombori (Kurslar Kesimida)</h1>
+            <div class="folder-container" id="folders-grid"></div>
+        </div>
+
+        <div id="acca-table" class="tab-content">
+            <h1>📊 ACCA Login va Parollar Bazasi (Kurslar bo'yicha)</h1>
+            
+            <div class="form-group admin-only">
+                <h3>➕ Yangi Login/Parol Qo'shish</h3>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    <select id="accaCourseSelect" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                    <input type="text" id="accaStudentName" placeholder="O'quvchi F.I.O">
+                    <input type="text" id="accaLogin" placeholder="ACCA ID (Login)">
+                    <input type="text" id="accaPass" placeholder="Parol">
+                    <button class="btn btn-primary" onclick="addAccaData()">Bazaga qo'shish</button>
+                </div>
+            </div>
+
+            <div id="acca-courses-container"></div>
+        </div>
+
+        <div id="security-logs" class="tab-content">
+            <h1>🔒 CRM Tizimi Amallari Audit Logi (Xavfsizlik)</h1>
+            <p style="color: #666; margin-top: -15px; margin-bottom: 20px;">Tizimda kim qanday amal bajarganini kuzatish maydoni. Faqat Kamoliddinga ko'rinadi.</p>
+            <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="clearAllLogs()">Loglarni tozalash</button>
+            </div>
+            <table class="excel-table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">📅 Sana va Vaqt</th>
+                        <th style="width: 20%;">👤 Foydalanuvchi</th>
+                        <th style="width: 15%;">Rol</th>
+                        <th>⚙️ Amal / Qilingan Ish</th>
+                    </tr>
+                </thead>
+                <tbody id="security-logs-tbody"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div id="course-modal" class="modal-overlay" onclick="closeCourseModal()">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeCourseModal()">&times;</span>
+            <h2 id="selected-course-title">Kurs Nomi</h2>
+            <p id="selected-course-meta" style="color: #666; margin-top: -15px; margin-bottom: 15px;"></p>
+            
+            <div class="inner-tabs">
+                <button id="tab-btn-stud" class="inner-tab-btn active" onclick="switchInnerTab('students-list-sec', 'tab-btn-stud')">👥 O'quvchilar Ro'yxati</button>
+                <button id="tab-btn-pay" class="inner-tab-btn" onclick="switchInnerTab('payments-sec', 'tab-btn-pay')">💰 To'lovlar bo'limi</button>
+            </div>
+
+            <div id="students-list-sec" class="inner-section active">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <h3>O'quvchilar ro'yxati</h3>
+                    <button class="btn btn-warning" onclick="exportToExcel()">📥 Excelga Import (.csv)</button>
+                </div>
+                
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="newStudName" placeholder="O'quvchi F.I.O" style="padding: 8px; border: 1px solid #ccc; border-radius:4px; flex: 1;">
+                    <input type="text" id="newStudPhone" placeholder="Telefon raqami" style="padding: 8px; border: 1px solid #ccc; border-radius:4px; flex: 1;">
+                    <select id="newStudType" style="padding: 8px; border: 1px solid #ccc; border-radius:4px;">
+                        <option value="Offline">Offline</option>
+                        <option value="Online">Online</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addStudentToCourse()">Qo'shish</button>
+                </div>
+
+                <div class="columns-container">
+                    <div class="student-column">
+                        <h4>🟠 Offline o'quvchilar</h4>
+                        <table class="excel-table">
+                            <thead>
+                                <tr><th>F.I.O</th><th>Telefon</th><th class="admin-only-cell">Harakat</th></tr>
+                            </thead>
+                            <tbody id="offline-students-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="student-column">
+                        <h4>🟣 Online o'quvchilar</h4>
+                        <table class="excel-table">
+                            <thead>
+                                <tr><th>F.I.O</th><th>Telefon</th><th class="admin-only-cell">Harakat</th></tr>
+                            </thead>
+                            <tbody id="online-students-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="payments-sec" class="inner-section">
+                <h3>💰 Guruh To'lovlar Nazorati</h3>
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th>O'quvchi F.I.O</th>
+                            <th>Format</th>
+                            <th>Kurs To'lovi holati</th>
+                            <th>Oxirgi To'lov Sanasi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="course-payments-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="folder-modal" class="modal-overlay" onclick="closeFolderModal()">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeFolderModal()">&times;</span>
+            <h2 id="selected-folder-title">Papka Hujjatlari</h2>
+            <p style="color: #666; margin-bottom: 20px;">Hujjatlarni yuklang yoki yuklab oling.</p>
+            
+            <div class="columns-container" style="grid-template-columns: 1fr;">
+                <div class="student-column" style="background:#fff; border: 1px solid #e0e0e0; margin-bottom: 15px;">
+                    <h4>🟠 Offline o'quvchilar hujjatlari</h4>
+                    <table class="excel-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">O'quvchi F.I.O</th>
+                                <th>🪪 Pasport / ID</th>
+                                <th>📜 Kurs Sertifikati</th>
+                                <th>🏆 Imtihon (ACCA)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="folder-offline-tbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="student-column" style="background:#fff; border: 1px solid #e0e0e0;">
+                    <h4>🟣 Online o'quvchilar hujjatlari</h4>
+                    <table class="excel-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">O'quvchi F.I.O</th>
+                                <th>🪪 Pasport / ID</th>
+                                <th>📜 Kurs Sertifikati</th>
+                                <th>🏆 Imtihon (ACCA)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="folder-online-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔒 TELEGRAM MARKAZIY BAZA SOZLAMALARI
+        const TG_TOKEN = "BU_YERGA_BOT_TOKENINI_QOYING"; // @BotFather bergan tokenni shu yerga qo'ying
+        const TG_CHAT_ID = "-1004425065292";            // Siz taqdim etgan Guruh ID-si
+
+        const usersDatabase = {
+            "kamoliddin": { pass: "Kamoliddin.admin1026", name: "Kamoliddin (Admin)", role: "admin", userKey: "kamoliddin" },
+            "sherzod": { pass: "Sherzod.admin12345", name: "Sherzod (Admin)", role: "admin", userKey: "sherzod" },
+            "umidjon": { pass: "Umidjon1981", name: "Umidjon (Admin)", role: "admin", userKey: "umidjon" },
+            "ohunjon": { pass: "Ohunjon.97", name: "Ohunjon (Admin)", role: "admin", userKey: "ohunjon" },
+            "tulaev_u": { pass: "85412963", name: "Umidjon Tulaev", role: "teacher", userKey: "tulaev_u" },
+            "xasanboyev_o": { pass: "74125896", name: "Ohunjon Xasanboyev", role: "teacher", userKey: "xasanboyev_o" },
+            "abduxoshimov_x": { pass: "36925814", name: "Xamidullo Abduxoshimov", role: "teacher", userKey: "abduxoshimov_x" },
+            "ruzikulov_o": { pass: "15935742", name: "Ruzikulov Otabek", role: "teacher", userKey: "ruzikulov_o" },
+            "kimsannazarov_i": { pass: "48261973", name: "Kimsannazarov Ibodullo", role: "teacher", userKey: "kimsannazarov_i" },
+            "rahmonov_a": { pass: "25846137", name: "Rahmonov Asror", role: "teacher", userKey: "rahmonov_a" },
+            "ibroximov_m": { pass: "95175364", name: "Ibroximov Maqsud", role: "teacher", userKey: "ibroximov_m" }
+        };
+
+        let currentUser = JSON.parse(sessionStorage.getItem('inno_logged_user')) || null;
+        let courses = [];
+        let accaData = [];
+        let logsData = [];
+        let selectedCourseId = null;
+
+        function showLoader(text) {
+            document.getElementById('loading-text').innerText = text;
+            document.getElementById('loading-screen').style.display = 'flex';
+        }
+        function hideLoader() {
+            document.getElementById('loading-screen').style.display = 'none';
+        }
+
+        // 📤 MA'LUMOTLARNI TELEGRAMGA CHEKSIZ FAYL SIFATIDA YUKLASH
+        async function save() {
+            // Lokal xotiraga ham dublyaj saqlab boradi
+            localStorage.setItem('inno_courses_v2', JSON.stringify(courses));
+            localStorage.setItem('inno_acca_v3', JSON.stringify(accaData));
+            localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
+
+            if(TG_TOKEN === "8981798199:AAGSBpnnwG86PlDWpAM7C10IWTdb0h0z1jo") return;
+
+            const fullDatabase = {
+                courses: courses,
+                acca: accaData,
+                logs: logsData
+            };
+
+            const jsonString = JSON.stringify(fullDatabase, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const formData = new FormData();
+            formData.append('chat_id', TG_CHAT_ID);
+            formData.append('document', blob, 'inno_crm_database.json');
+            formData.append('caption', `🔄 CRM Baza yangilandi\n👤 Kim tomonidan: ${currentUser ? currentUser.name : 'Tizim'}\n📅 Sana: ${new Date().toLocaleString()}`);
+
+            try {
+                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (e) {
+                console.error("Telegramga sinxronizatsiya qilishda xatolik:", e);
+            }
+        }
+
+        // 📥 TELEGRAM GURUHIDAN ENGOXIRGI TASHGANGAN JAYSON FAYLNI O'QIB OLISH
+        async function loadFromTelegram(isManual = false) {
+            if(TG_TOKEN === "BU_YERGA_BOT_TOKENINI_QOYING") {
+                // Agar bot ulanmagan bo'lsa lokal xotiradan o'qiydi (Eski holat)
+                courses = JSON.parse(localStorage.getItem('inno_courses_v2')) || [];
+                accaData = JSON.parse(localStorage.getItem('inno_acca_v3')) || [];
+                logsData = JSON.parse(localStorage.getItem('inno_logs_v1')) || [];
+                render();
+                return;
+            }
+
+            if(isManual) showLoader("Markaziy ma'lumotlar bazasi yangilanmoqda...");
+
+            try {
+                let response = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=-10`);
+                let data = await response.json();
+                
+                if(data.ok && data.result.length > 0) {
+                    // Guruh ichidan eng oxirgi faylli xabarni teskari qarab qidiramiz
+                    let dbFileId = null;
+                    for(let i = data.result.length - 1; i >= 0; i--) {
+                        let update = data.result[i];
+                        let msg = update.message || update.channel_post;
+                        if(msg && msg.chat.id.toString() === TG_CHAT_ID && msg.document && msg.document.file_name === 'inno_crm_database.json') {
+                            dbFileId = msg.document.file_id;
+                            break;
+                        }
+                    }
+
+                    if(dbFileId) {
+                        let filePathRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${dbFileId}`);
+                        let filePathData = await pathRes.json();
+                        if(filePathData.ok) {
+                            let fileUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${filePathData.result.file_path}`;
+                            let dbContentRes = await fetch(fileUrl);
+                            let finalDb = await dbContentRes.json();
+                            
+                            courses = finalDb.courses || [];
+                            accaData = finalDb.acca || [];
+                            logsData = finalDb.logs || [];
+                            
+                            localStorage.setItem('inno_courses_v2', JSON.stringify(courses));
+                            localStorage.setItem('inno_acca_v3', JSON.stringify(accaData));
+                            localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log("Bulutli bazadan yuklashda tarmoq xatosi, lokal xotiradan o'qilmoqda.");
+                courses = JSON.parse(localStorage.getItem('inno_courses_v2')) || [];
+                accaData = JSON.parse(localStorage.getItem('inno_acca_v3')) || [];
+                logsData = JSON.parse(localStorage.getItem('inno_logs_v1')) || [];
+            } finally {
+                render();
+                if(isManual) hideLoader();
+            }
+        }
+
+        function logAction(actionText) {
+            if (!currentUser) return;
+            const now = new Date();
+            const timeString = now.toLocaleDateString() + " " + now.toLocaleTimeString();
+            logsData.unshift({
+                time: timeString,
+                user: currentUser.name,
+                role: currentUser.role === 'admin' ? 'Admin' : 'O\'qituvchi',
+                action: actionText
+            });
+            localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
+        }
+
+        async function handleLogin() {
+            const userInp = document.getElementById('usernameInput').value.trim().toLowerCase();
+            const passInp = document.getElementById('passwordInput').value.trim();
+            const errorMsg = document.getElementById('login-error-msg');
+
+            if(usersDatabase[userInp] && usersDatabase[userInp].pass === passInp) {
+                currentUser = usersDatabase[userInp];
+                sessionStorage.setItem('inno_logged_user', JSON.stringify(currentUser));
+                errorMsg.style.display = 'none';
+                document.getElementById('usernameInput').value = '';
+                document.getElementById('passwordInput').value = '';
+                
+                showLoader("Ma'lumotlar sinxronizatsiya qilinmoqda, kuting...");
+                await loadFromTelegram();
+                logAction("Tizimga muvaffaqiyatli kirdi.");
+                await save();
+                hideLoader();
+                
+                initApp();
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        function handleLogout() {
+            logAction("Tizimdan chiqdi.");
+            save().then(() => {
+                sessionStorage.removeItem('inno_logged_user');
+                currentUser = null;
+                location.reload();
+            });
+        }
+
+        async function initApp() {
+            if(!currentUser) {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('app-sidebar').style.display = 'none';
+                document.getElementById('app-content').style.display = 'none';
+                document.body.className = "";
+                return;
+            }
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-sidebar').style.display = 'block';
+            document.getElementById('app-content').style.display = 'block';
+            document.getElementById('user-display-name').innerText = "Foydalanuvchi: " + currentUser.name;
+
+            let bodyClasses = currentUser.role + "-role";
+            if(currentUser.userKey === "kamoliddin") {
+                bodyClasses += " kamoliddin-user";
+            }
+            document.body.className = bodyClasses;
+
+            // Dastlabki yuklash
+            if(courses.length === 0) {
+                await loadFromTelegram();
+            } else {
+                render();
+            }
+        }
+
+        function switchTab(tabId) {
+            if(currentUser.role !== 'admin' && (tabId === 'tarix' || tabId === 'acca-table')) return;
+            if(currentUser.userKey !== 'kamoliddin' && tabId === 'security-logs') return;
+            
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            const targetBtn = document.getElementById('btn-' + tabId);
+            if(targetBtn) targetBtn.classList.add('active');
+            render();
+        }
+
+        function switchInnerTab(secId, btnId) {
+            document.querySelectorAll('.inner-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.inner-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(secId).classList.add('active');
+            document.getElementById(btnId).classList.add('active');
+        }
+
+        function addCourse() {
+            if(currentUser.role !== 'admin') return;
+            const name = document.getElementById('courseName').value.trim();
+            const month = document.getElementById('courseMonth').value;
+            const teacher = document.getElementById('courseTeacher').value;
+            if(!name) return alert("Kurs nomini kiriting!");
+
+            courses.push({ id: Date.now(), name, month, teacher, status: "active", students: [] });
+            logAction(`Yangi kurs qo'shdi: "${name}" (${teacher}, Oy: ${month})`);
+            document.getElementById('courseName').value = '';
+            save(); render();
+        }
+
+        function completeCourse(id, e) {
+            e.stopPropagation();
+            if(currentUser.role !== 'admin') return;
+            let c = courses.find(x => x.id === id);
+            if(c) { 
+                c.status = "archived"; 
+                logAction(`Kursni tugatilganlar arxiviga o'tkazdi: "${c.name}"`);
+                save(); render(); 
+            }
+        }
+
+        function restoreCourse(id, e) {
+            e.stopPropagation();
+            if(currentUser.role !== 'admin') return;
+            let c = courses.find(x => x.id === id);
+            if(c) { 
+                c.status = "active"; 
+                logAction(`Arxivdagi kursni faol holatga qaytardi: "${c.name}"`);
+                save(); render(); 
+            }
+        }
+
+        function openCourseDetails(id) {
+            let c = courses.find(x => x.id === id);
+            if(!c) return;
+            if(currentUser.role !== 'admin' && c.teacher !== currentUser.name) return;
+            selectedCourseId = id;
+            document.getElementById('selected-course-title').innerText = "🟢 " + c.name;
+            document.getElementById('selected-course-meta').innerText = `Ustoz: ${c.teacher} | Oy: ${c.month}`;
+            
+            document.getElementById('course-modal').style.display = 'flex';
+            switchInnerTab('students-list-sec', 'tab-btn-stud');
+            renderCourseStudents();
+        }
+
+        function closeCourseModal() {
+            document.getElementById('course-modal').style.display = 'none';
+            render();
+        }
+
+        function addStudentToCourse() {
+            let name = document.getElementById('newStudName').value.trim();
+            let phone = document.getElementById('newStudPhone').value.trim();
+            let type = document.getElementById('newStudType').value;
+            if(!name || !phone) return alert("O'quvchi ma'lumotlarini kiriting!");
+
+            let c = courses.find(x => x.id === selectedCourseId);
+            c.students.push({ name, phone, type, paid: "Qarzdor", date: "-", files: { passport: null, certKurs: null, certExam: null } });
+            
+            logAction(`"${c.name}" kursiga yangi talaba qo'shdi: ${name} (${type})`);
+            document.getElementById('newStudName').value = '';
+            document.getElementById('newStudPhone').value = '';
+            save(); renderCourseStudents();
+        }
+
+        function deleteStudent(index) {
+            if(currentUser.role !== 'admin') return alert("O'chirish huquqi faqat ma'muriyatda bor!");
+            let c = courses.find(x => x.id === selectedCourseId);
+            let studName = c.students[index].name;
+            c.students.splice(index, 1);
+            logAction(`"${c.name}" kursidan talaba o'chirdi: ${studName}`);
+            save(); renderCourseStudents();
+        }
+
+        function updatePayment(index, field, val) {
+            if(currentUser.role !== 'admin') return;
+            let c = courses.find(x => x.id === selectedCourseId);
+            let oldVal = c.students[index][field];
+            c.students[index][field] = val;
+            logAction(`"${c.name}" kursidagi ${c.students[index].name}ning to'lov ${field}ini o'zgartirdi: "${oldVal}" -> "${val}"`);
+            save();
+        }
+
+        function renderCourseStudents() {
+            let c = courses.find(x => x.id === selectedCourseId);
+            let tbodyOffline = document.getElementById('offline-students-tbody');
+            let tbodyOnline = document.getElementById('online-students-tbody');
+            let tbodyPay = document.getElementById('course-payments-tbody');
+            
+            tbodyOffline.innerHTML = ''; tbodyOnline.innerHTML = ''; tbodyPay.innerHTML = '';
+
+            const isAdmin = currentUser.role === 'admin';
+
+            c.students.forEach((s, idx) => {
+                let actionHtml = isAdmin ? `<td class="admin-only-cell"><button class="btn btn-danger" style="padding:4px 8px;" onclick="deleteStudent(${idx})">O'chirish</button></td>` : ``;
+                let rowHtml = `<tr><td><strong>${s.name}</strong></td><td>${s.phone}</td>${actionHtml}</tr>`;
+                
+                if (s.type === 'Online') { tbodyOnline.innerHTML += rowHtml; } 
+                else { tbodyOffline.innerHTML += rowHtml; }
+
+                let paymentSelectorOrText = "";
+                let dateInputOrText = "";
+
+                if (isAdmin) {
+                    paymentSelectorOrText = `
+                        <select onchange="updatePayment(${idx}, 'paid', this.value)">
+                            <option value="To'langan" ${s.paid==="To'langan"?'selected':''}>To'langan</option>
+                            <option value="Qarzdor" ${s.paid==="Qarzdor"?'selected':''}>Qarzdor</option>
+                        </select>`;
+                    dateInputOrText = `<input type="text" value="${s.date}" onchange="updatePayment(${idx}, 'date', this.value)" placeholder="sana">`;
+                } else {
+                    let statusColor = s.paid === "To'langan" ? "green" : "red";
+                    paymentSelectorOrText = `<span style="color:${statusColor}; font-weight:bold;">${s.paid}</span>`;
+                    dateInputOrText = `<span>${s.date}</span>`;
+                }
+
+                tbodyPay.innerHTML += `
+                    <tr>
+                        <td>${s.name} <span class="badge ${s.type==='Online'?'badge-online':'badge-offline'}" style="font-size:10px; padding:2px 4px;">${s.type}</span></td>
+                        <td>${s.type}</td>
+                        <td>${paymentSelectorOrText}</td>
+                        <td>${dateInputOrText}</td>
+                    </tr>`;
+            });
+            
+            let colSpanCount = isAdmin ? 3 : 2;
+            if(tbodyOffline.innerHTML === '') tbodyOffline.innerHTML = `<tr><td colspan='${colSpanCount}' style='text-align:center;color:#999;font-size:12px;'>Offline o'quvchilar yo'q</td></tr>`;
+            if(tbodyOnline.innerHTML === '') tbodyOnline.innerHTML = `<tr><td colspan='${colSpanCount}' style='text-align:center;color:#999;font-size:12px;'>Online o'quvchilar yo'q</td></tr>`;
+        }
+
+        function exportToExcel() {
+            let c = courses.find(x => x.id === selectedCourseId);
+            if(c.students.length === 0) return alert("Guruhda o'quvchilar yo'q!");
+            let csvContent = "data:text/csv;charset=utf-8,F.I.O,Telefon raqami,Dars formati,To'lov holati\n";
+            c.students.forEach(s => { csvContent += `${s.name},${s.phone},${s.type},${s.paid}\n`; });
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${c.name}_talabalar_royxati.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            logAction(`"${c.name}" guruhining talabalar ro'yxatini Excelga (.csv) yuklab oldi.`);
+        }
+
+        function openFolder(courseId) {
+            let c = courses.find(x => x.id === courseId);
+            if(!c) return;
+            if(currentUser.role !== 'admin' && c.teacher !== currentUser.name) return;
+            selectedCourseId = courseId;
+            document.getElementById('selected-folder-title').innerText = `📂 ${c.name} papkasi ichidagi hujjatlar`;
+            document.getElementById('folder-modal').style.display = 'flex';
+            renderFolderFiles();
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folder-modal').style.display = 'none';
+            render();
+        }
+
+        function renderFolderFiles() {
+            let c = courses.find(x => x.id === selectedCourseId);
+            let tbodyOffline = document.getElementById('folder-offline-tbody');
+            let tbodyOnline = document.getElementById('folder-online-tbody');
+            
+            tbodyOffline.innerHTML = ''; tbodyOnline.innerHTML = '';
+
+            let hasOffline = false, hasOnline = false;
+
+            c.students.forEach((s, idx) => {
+                let rowHtml = `
+                    <tr>
+                        <td><strong>${s.name}</strong></td>
+                        <td>${renderFileCell(idx, 'passport', s.files.passport)}</td>
+                        <td>${renderFileCell(idx, 'certKurs', s.files.certKurs)}</td>
+                        <td>${renderFileCell(idx, 'certExam', s.files.certExam)}</td>
+                    </tr>`;
+                
+                if(s.type === 'Online') { tbodyOnline.innerHTML += rowHtml; hasOnline = true; } 
+                else { tbodyOffline.innerHTML += rowHtml; hasOffline = true; }
+            });
+
+            if(!hasOffline) tbodyOffline.innerHTML = "<tr><td colspan='4' style='text-align:center;color:#999;font-size:12px;'>Offline o'quvchilar hali mavjud emas...</td></tr>";
+            if(!hasOnline) tbodyOnline.innerHTML = "<tr><td colspan='4' style='text-align:center;color:#999;font-size:12px;'>Online o'quvchilar hali mavjud emas...</td></tr>";
+        }
+
+        function renderFileCell(studIdx, fileType, fileData) {
+            if(fileData) {
+                return `
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <span style="font-size:12px; color:green; font-weight:bold;">Yuklangan ✓</span>
+                        <a href="${fileData}" download="${fileType}_hujjat" class="btn btn-success" style="padding:4px 6px; font-size:11px; text-align:center;">📥 Yuklab olish</a>
+                        <button class="btn btn-danger" style="padding:2px 4px; font-size:10px;" onclick="removeFile(${studIdx}, '${fileType}')">O'chirish</button>
+                    </div>`;
+            } else { return `<input type="file" onchange="uploadFile(this, ${studIdx}, '${fileType}')" style="font-size:12px;">`; }
+        }
+
+        function uploadFile(input, studIdx, fileType) {
+            let file = input.files[0];
+            let reader = new FileReader();
+            let c = courses.find(x => x.id === selectedCourseId);
+            reader.onloadend = function() {
+                c.students[studIdx].files[fileType] = reader.result;
+                logAction(`"${c.name}" guruhidagi ${c.students[studIdx].name}ga yangi hujjat yukladi: [${fileType}]`);
+                save(); renderFolderFiles();
+            }
+            if(file) reader.readAsDataURL(file);
+        }
+
+        function removeFile(studIdx, fileType) {
+            let c = courses.find(x => x.id === selectedCourseId);
+            logAction(`"${c.name}" guruhidagi ${c.students[studIdx].name}ning hujjatini o'chirdi: [${fileType}]`);
+            c.students[studIdx].files[fileType] = null;
+            save(); renderFolderFiles();
+        }
+
+        function addAccaData() {
+            if(currentUser.role !== 'admin') return;
+            const selectEl = document.getElementById('accaCourseSelect');
+            if(!selectEl || selectEl.value === "") return alert("Avval faol kurs yarating!");
+            
+            const courseId = parseInt(selectEl.value);
+            const name = document.getElementById('accaStudentName').value.trim();
+            const login = document.getElementById('accaLogin').value.trim();
+            const pass = document.getElementById('accaPass').value.trim();
+
+            if(!courseId || !name || !login || !pass) return alert("Hamma maydonlarni to'ldiring!");
+
+            accaData.push({ courseId, name, login, pass });
+            let courseObj = courses.find(x => x.id === courseId);
+            logAction(`ACCA Bazasiga yangi hisob qo'shdi (${courseObj ? courseObj.name : ''}): Talaba: ${name}`);
+            document.getElementById('accaStudentName').value = '';
+            document.getElementById('accaLogin').value = '';
+            document.getElementById('accaPass').value = '';
+            save(); renderAcca();
+        }
+
+        function updateAccaField(index, field, value) {
+            if(currentUser.role !== 'admin') return;
+            let oldVal = accaData[index][field];
+            accaData[index][field] = value;
+            logAction(`ACCA bazasidagi ${accaData[index].name}ning "${field}" maydonini o'zgartirdi: "${oldVal}" -> "${value}"`);
+            save();
+        }
+
+        function deleteAccaRow(index) {
+            if(currentUser.role !== 'admin') return;
+            if(confirm("Ushbu login parolni o'chirishni xohlaysizmi?")) {
+                logAction(`ACCA bazasidan ma'lumot o'chirdi: Talaba: ${accaData[index].name}`);
+                accaData.splice(index, 1);
+                save(); renderAcca();
+            }
+        }
+        
+        function renderAcca() {
+            if(currentUser.role !== 'admin') return;
+            const select = document.getElementById('accaCourseSelect');
+            if(select) {
+                select.innerHTML = '';
+                courses.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+            }
+
+            const container = document.getElementById('acca-courses-container');
+            if(!container) return;
+            container.innerHTML = '';
+
+            if(courses.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">Hozircha guruh mavjud emas.</p>`;
+                return;
+            }
+
+            courses.forEach(course => {
+                let courseLogins = accaData.map((item, originalIndex) => ({...item, originalIndex})).filter(item => item.courseId === course.id);
+
+                let blockHtml = `
+                    <div class="acca-course-block">
+                        <h3>📚 ${course.name} guruhining ACCA hisoblari</h3>
+                        <table class="excel-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">№</th>
+                                    <th style="width: 35%;">O'quvchi F.I.O</th>
+                                    <th style="width: 25%;">ACCA ID (Login)</th>
+                                    <th style="width: 25%;">Parol</th>
+                                    <th style="width: 10%;">Harakat</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                if(courseLogins.length === 0) {
+                    blockHtml += `<tr><td colspan="5" style="text-align:center; color:#999;">Ushbu guruhga login parollar biriktirilmagan...</td></tr>`;
+                } else {
+                    courseLogins.forEach((row, i) => {
+                        blockHtml += `
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td><input type="text" value="${row.name}" onchange="updateAccaField(${row.originalIndex}, 'name', this.value)"></td>
+                                <td><input type="text" value="${row.login}" onchange="updateAccaField(${row.originalIndex}, 'login', this.value)"></td>
+                                <td><input type="text" value="${row.pass}" onchange="updateAccaField(${row.originalIndex}, 'pass', this.value)"></td>
+                                <td><button class="btn btn-danger" style="padding: 4px 8px;" onclick="deleteAccaRow(${row.originalIndex})">O'chirish</button></td>
+                            </tr>`;
+                    });
+                }
+
+                blockHtml += `</tbody></table></div>`;
+                container.innerHTML += blockHtml;
+            });
+        }
+
+        function renderSecurityLogs() {
+            if (currentUser.userKey !== 'kamoliddin') return;
+            const tbody = document.getElementById('security-logs-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            if(logsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999;">Hali hech qanday harakat qayd etilmadi...</td></tr>`;
+                return;
+            }
+
+            logsData.forEach(log => {
+                let badgeColor = log.role === 'Admin' ? 'var(--accent-color)' : 'var(--security-color)';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="color:#555;">${log.time}</td>
+                        <td><strong>${log.user}</strong></td>
+                        <td><span class="log-badge" style="background-color:${badgeColor};">${log.role}</span></td>
+                        <td style="color:#2c3e50; font-weight: 500;">${log.action}</td>
+                    </tr>`;
+            });
+        }
+
+        function clearAllLogs() {
+            if (currentUser.userKey !== 'kamoliddin') return;
+            if(confirm("Haqiqatdan ham tizim audit loglarini butunlay o'chirib tashlamoqchimisiz?")) {
+                logsData = [];
+                localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
+                logAction("Audit xavfsizlik loglari Kamoliddin tomonidan tozalandi.");
+                save().then(() => renderSecurityLogs());
+            }
+        }
+
+        function render() {
+            const isAdmin = currentUser.role === 'admin';
+            const teacherName = currentUser.name;
+
+            const activeGrid = document.getElementById('active-courses-grid'); 
+            if(activeGrid) {
+                activeGrid.innerHTML = '';
+                let activeList = courses.filter(c => c.status === 'active');
+                
+                if(!isAdmin) {
+                    activeList = activeList.filter(c => c.teacher === teacherName);
+                }
+
+                if(activeList.length === 0) {
+                    activeGrid.innerHTML = `<p style="color:#999; grid-column: 1/-1; text-align:center;">Kurslar topilmadi.</p>`;
+                }
+
+                activeList.forEach(c => {
+                    let completeBtn = isAdmin ? `<button class="btn btn-danger btn-complete admin-only" onclick="completeCourse(${c.id}, event)">✅ Tugatish</button>` : '';
+                    activeGrid.innerHTML += `
+                        <div class="card" onclick="openCourseDetails(${c.id})">
+                            <h3>${c.name}</h3>
+                            <p><strong>Oy:</strong> ${c.month}</p>
+                            <p><strong>Ustoz:</strong> ${c.teacher}</p>
+                            <p><strong>O'quvchilar:</strong> ${c.students.length} ta</p>
+                            ${completeBtn}
+                        </div>`;
+                });
+            }
+
+            if(isAdmin) {
+                const historyGrid = document.getElementById('history-courses-grid'); 
+                if(historyGrid) {
+                    historyGrid.innerHTML = '';
+                    const archivedList = courses.filter(c => c.status === 'archived');
+                    if(archivedList.length === 0) {
+                        historyGrid.innerHTML = `<p style="color:#999; grid-column: 1/-1; text-align:center;">Tarix arxivi bo'sh.</p>`;
+                    }
+                    archivedList.forEach(c => {
+                        historyGrid.innerHTML += `
+                            <div class="card history-card">
+                                <h3>${c.name}</h3>
+                                <p><strong>Oy:</strong> ${c.month}</p>
+                                <p><strong>Ustoz:</strong> ${c.teacher}</p>
+                                <button class="btn btn-primary" onclick="restoreCourse(${c.id}, event)">↩️ Faolga qaytarish</button>
+                            </div>`;
+                    });
+                }
+            }
+
+            const foldersGrid = document.getElementById('folders-grid'); 
+            if(foldersGrid) {
+                foldersGrid.innerHTML = '';
+                let folderList = [...courses];
+                
+                if(!isAdmin) {
+                    folderList = folderList.filter(c => c.teacher === teacherName);
+                }
+
+                if(folderList.length === 0) {
+                    foldersGrid.innerHTML = `<p style="color:#999; grid-column: 1/-1; text-align:center;">Papkalar mavjud emas.</p>`;
+                }
+
+                folderList.forEach(c => {
+                    foldersGrid.innerHTML += `
+                        <div class="folder-card" onclick="openFolder(${c.id})">
+                            <div class="folder-icon">📁</div>
+                            <div style="font-weight:bold; color:#2c3e50;">${c.name}</div>
+                            <div style="font-size:12px; color:#7f8c8d; margin-top:5px;">${c.students.length} ta o'quvchi</div>
+                        </div>`;
+                });
+            }
+
+            renderAcca();
+            renderSecurityLogs();
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
