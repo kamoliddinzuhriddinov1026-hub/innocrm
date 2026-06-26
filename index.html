@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -18,11 +19,6 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: var(--bg-color); color: #333; display: flex; min-height: 100vh; }
-
-        /* LOADING SCREEN */
-        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(44, 62, 80, 0.9); z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; color: white; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* LOGIN SAHIFASI */
         .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#2c3e50; z-index: 1000; display: flex; justify-content: center; align-items: center; }
@@ -127,12 +123,6 @@
 </head>
 <body>
 
-    <!-- SINKRONIZATSIYA LOADING EKANI -->
-    <div id="loading-screen" class="loading-overlay">
-        <div class="spinner"></div>
-        <h3 id="loading-text">Markaziy bazaga ulanmoqda...</h3>
-    </div>
-
     <div id="login-screen" class="login-overlay">
         <div class="login-box">
             <h2>INNO CRM Tizimi</h2>
@@ -157,10 +147,7 @@
     <div class="main-content" id="app-content">
 
         <div id="faol-kurslar" class="tab-content active">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h1>Hozirgi Faol Kurslar</h1>
-                <button class="btn btn-primary" onclick="loadFromTelegram(true)">🔄 Yangilash (Sinxronizatsiya)</button>
-            </div>
+            <h1>Hozirgi Faol Kurslar</h1>
             <p style="color: #666; margin-top: -15px; margin-bottom: 20px;">O'quvchilar ro'yxati va ma'lumotlarni ko'rish uchun kurs ustiga bosing.</p>
             
             <div class="form-group admin-only" id="add-course-section">
@@ -347,10 +334,6 @@
     </div>
 
     <script>
-        // 🔒 TELEGRAM MARKAZIY BAZA SOZLAMALARI
-        const TG_TOKEN = "8981798199:AAGSBpnnwG86PlDWpAM7C10IWTdb0h0z1jo"; // @BotFather bergan tokenni shu yerga qo'ying
-        const TG_CHAT_ID = "-1004425065292";            // Siz taqdim etgan Guruh ID-si
-
         const usersDatabase = {
             "kamoliddin": { pass: "Kamoliddin.admin1026", name: "Kamoliddin (Admin)", role: "admin", userKey: "kamoliddin" },
             "sherzod": { pass: "Sherzod.admin12345", name: "Sherzod (Admin)", role: "admin", userKey: "sherzod" },
@@ -366,109 +349,12 @@
         };
 
         let currentUser = JSON.parse(sessionStorage.getItem('inno_logged_user')) || null;
-        let courses = [];
-        let accaData = [];
-        let logsData = [];
+        let courses = JSON.parse(localStorage.getItem('inno_courses_v2')) || [];
+        let accaData = JSON.parse(localStorage.getItem('inno_acca_v3')) || [];
+        let logsData = JSON.parse(localStorage.getItem('inno_logs_v1')) || [];
         let selectedCourseId = null;
 
-        function showLoader(text) {
-            document.getElementById('loading-text').innerText = text;
-            document.getElementById('loading-screen').style.display = 'flex';
-        }
-        function hideLoader() {
-            document.getElementById('loading-screen').style.display = 'none';
-        }
-
-        // 📤 MA'LUMOTLARNI TELEGRAMGA CHEKSIZ FAYL SIFATIDA YUKLASH
-        async function save() {
-            // Lokal xotiraga ham dublyaj saqlab boradi
-            localStorage.setItem('inno_courses_v2', JSON.stringify(courses));
-            localStorage.setItem('inno_acca_v3', JSON.stringify(accaData));
-            localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
-
-            if(TG_TOKEN === "8981798199:AAGSBpnnwG86PlDWpAM7C10IWTdb0h0z1jo") return;
-
-            const fullDatabase = {
-                courses: courses,
-                acca: accaData,
-                logs: logsData
-            };
-
-            const jsonString = JSON.stringify(fullDatabase, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const formData = new FormData();
-            formData.append('chat_id', TG_CHAT_ID);
-            formData.append('document', blob, 'inno_crm_database.json');
-            formData.append('caption', `🔄 CRM Baza yangilandi\n👤 Kim tomonidan: ${currentUser ? currentUser.name : 'Tizim'}\n📅 Sana: ${new Date().toLocaleString()}`);
-
-            try {
-                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, {
-                    method: 'POST',
-                    body: formData
-                });
-            } catch (e) {
-                console.error("Telegramga sinxronizatsiya qilishda xatolik:", e);
-            }
-        }
-
-        // 📥 TELEGRAM GURUHIDAN ENG OXIRGI TASHGANGAN JAYSON FAYLNI O'QIB OLISH
-        async function loadFromTelegram(isManual = false) {
-            if(TG_TOKEN === "8981798199:AAGSBpnnwG86PlDWpAM7C10IWTdb0h0z1jo") {
-                // Agar bot ulanmagan bo'lsa lokal xotiradan o'qiydi (Eski holat)
-                courses = JSON.parse(localStorage.getItem('inno_courses_v2')) || [];
-                accaData = JSON.parse(localStorage.getItem('inno_acca_v3')) || [];
-                logsData = JSON.parse(localStorage.getItem('inno_logs_v1')) || [];
-                render();
-                return;
-            }
-
-            if(isManual) showLoader("Markaziy ma'lumotlar bazasi yangilanmoqda...");
-
-            try {
-                let response = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=-10`);
-                let data = await response.json();
-                
-                if(data.ok && data.result.length > 0) {
-                    // Guruh ichidan eng oxirgi faylli xabarni teskari qarab qidiramiz
-                    let dbFileId = null;
-                    for(let i = data.result.length - 1; i >= 0; i--) {
-                        let update = data.result[i];
-                        let msg = update.message || update.channel_post;
-                        if(msg && msg.chat.id.toString() === TG_CHAT_ID && msg.document && msg.document.file_name === 'inno_crm_database.json') {
-                            dbFileId = msg.document.file_id;
-                            break;
-                        }
-                    }
-
-                    if(dbFileId) {
-                        let filePathRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${dbFileId}`);
-                        let filePathData = await filePathRes.json();
-                        if(filePathData.ok) {
-                            let fileUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${filePathData.result.file_path}`;
-                            let dbContentRes = await fetch(fileUrl);
-                            let finalDb = await dbContentRes.json();
-                            
-                            courses = finalDb.courses || [];
-                            accaData = finalDb.acca || [];
-                            logsData = finalDb.logs || [];
-                            
-                            localStorage.setItem('inno_courses_v2', JSON.stringify(courses));
-                            localStorage.setItem('inno_acca_v3', JSON.stringify(accaData));
-                            localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
-                        }
-                    }
-                }
-            } catch(e) {
-                console.log("Bulutli bazadan yuklashda tarmoq xatosi, lokal xotiradan o'qilmoqda.");
-                courses = JSON.parse(localStorage.getItem('inno_courses_v2')) || [];
-                accaData = JSON.parse(localStorage.getItem('inno_acca_v3')) || [];
-                logsData = JSON.parse(localStorage.getItem('inno_logs_v1')) || [];
-            } finally {
-                render();
-                if(isManual) hideLoader();
-            }
-        }
-
+        // 🔐 Log yozish tizimi
         function logAction(actionText) {
             if (!currentUser) return;
             const now = new Date();
@@ -482,7 +368,42 @@
             localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
         }
 
-        async function handleLogin() {
+        // 📨 Telegram integratsiyasi (Cloudflare Worker proxy orqali — token bu yerda saqlanmaydi)
+        // Worker yaratgandan keyin, pastdagi manzilni o'zingiznikiga almashtiring:
+        // masalan: https://inno-crm-telegram.SIZNING-NOM.workers.dev
+        const TELEGRAM_PROXY_URL = "https://inno-crm-telegram.SIZNING-NOM.workers.dev";
+
+        function sendToTelegram(text) {
+            fetch(`${TELEGRAM_PROXY_URL}/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.ok) {
+                    console.error('Telegram xabar yuborilmadi:', data.description || data.error);
+                }
+            })
+            .catch(err => console.error('Telegram ulanish xatosi:', err));
+        }
+
+        function sendFileToTelegram(file, caption) {
+            const formData = new FormData();
+            formData.append('caption', caption);
+            formData.append('document', file, file.name);
+
+            fetch(`${TELEGRAM_PROXY_URL}/sendDocument`, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.ok) {
+                    console.error('Telegram fayl yuborilmadi:', data.description || data.error);
+                }
+            })
+            .catch(err => console.error('Telegram fayl ulanish xatosi:', err));
+        }
+
+        function handleLogin() {
             const userInp = document.getElementById('usernameInput').value.trim().toLowerCase();
             const passInp = document.getElementById('passwordInput').value.trim();
             const errorMsg = document.getElementById('login-error-msg');
@@ -493,13 +414,7 @@
                 errorMsg.style.display = 'none';
                 document.getElementById('usernameInput').value = '';
                 document.getElementById('passwordInput').value = '';
-                
-                showLoader("Ma'lumotlar sinxronizatsiya qilinmoqda, kuting...");
-                await loadFromTelegram();
                 logAction("Tizimga muvaffaqiyatli kirdi.");
-                await save();
-                hideLoader();
-                
                 initApp();
             } else {
                 errorMsg.style.display = 'block';
@@ -508,14 +423,12 @@
 
         function handleLogout() {
             logAction("Tizimdan chiqdi.");
-            save().then(() => {
-                sessionStorage.removeItem('inno_logged_user');
-                currentUser = null;
-                location.reload();
-            });
+            sessionStorage.removeItem('inno_logged_user');
+            currentUser = null;
+            location.reload();
         }
 
-        async function initApp() {
+        function initApp() {
             if(!currentUser) {
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('app-sidebar').style.display = 'none';
@@ -529,18 +442,14 @@
             document.getElementById('app-content').style.display = 'block';
             document.getElementById('user-display-name').innerText = "Foydalanuvchi: " + currentUser.name;
 
+            // Rollarni biriktirish
             let bodyClasses = currentUser.role + "-role";
             if(currentUser.userKey === "kamoliddin") {
-                bodyClasses += " kamoliddin-user";
+                bodyClasses += " kamoliddin-user"; // Faqat kamoliddinga maxsus klass
             }
             document.body.className = bodyClasses;
 
-            // Dastlabki yuklash
-            if(courses.length === 0) {
-                await loadFromTelegram();
-            } else {
-                render();
-            }
+            render();
         }
 
         function switchTab(tabId) {
@@ -563,6 +472,11 @@
             document.getElementById(btnId).classList.add('active');
         }
 
+        function save() {
+            localStorage.setItem('inno_courses_v2', JSON.stringify(courses));
+            localStorage.setItem('inno_acca_v3', JSON.stringify(accaData));
+        }
+
         function addCourse() {
             if(currentUser.role !== 'admin') return;
             const name = document.getElementById('courseName').value.trim();
@@ -572,6 +486,7 @@
 
             courses.push({ id: Date.now(), name, month, teacher, status: "active", students: [] });
             logAction(`Yangi kurs qo'shdi: "${name}" (${teacher}, Oy: ${month})`);
+            sendToTelegram(`🆕 <b>Yangi kurs qo'shildi</b>\n📚 Kurs: ${name}\n👨‍🏫 Ustoz: ${teacher}\n📅 Oy: ${month}\n👤 Qo'shdi: ${currentUser.name}`);
             document.getElementById('courseName').value = '';
             save(); render();
         }
@@ -626,6 +541,7 @@
             c.students.push({ name, phone, type, paid: "Qarzdor", date: "-", files: { passport: null, certKurs: null, certExam: null } });
             
             logAction(`"${c.name}" kursiga yangi talaba qo'shdi: ${name} (${type})`);
+            sendToTelegram(`👤 <b>Yangi o'quvchi qo'shildi</b>\n📚 Kurs: ${c.name}\n🙋 Ism: ${name}\n📞 Tel: ${phone}\n💻 Turi: ${type}\n👤 Qo'shdi: ${currentUser.name}`);
             document.getElementById('newStudName').value = '';
             document.getElementById('newStudPhone').value = '';
             save(); renderCourseStudents();
@@ -646,6 +562,9 @@
             let oldVal = c.students[index][field];
             c.students[index][field] = val;
             logAction(`"${c.name}" kursidagi ${c.students[index].name}ning to'lov ${field}ini o'zgartirdi: "${oldVal}" -> "${val}"`);
+            if (field === 'paid') {
+                sendToTelegram(`💰 <b>To'lov holati o'zgardi</b>\n📚 Kurs: ${c.name}\n🙋 O'quvchi: ${c.students[index].name}\n📌 Holat: "${oldVal}" → "${val}"\n👤 O'zgartirdi: ${currentUser.name}`);
+            }
             save();
         }
 
@@ -666,6 +585,7 @@
                 if (s.type === 'Online') { tbodyOnline.innerHTML += rowHtml; } 
                 else { tbodyOffline.innerHTML += rowHtml; }
 
+                // To'lovlar ko'rinishi
                 let paymentSelectorOrText = "";
                 let dateInputOrText = "";
 
@@ -677,6 +597,7 @@
                         </select>`;
                     dateInputOrText = `<input type="text" value="${s.date}" onchange="updatePayment(${idx}, 'date', this.value)" placeholder="sana">`;
                 } else {
+                    // O'quvchi to'lovlarini o'qituvchi faqat matn ko'rinishida ko'radi (o'zgartira olmaydi)
                     let statusColor = s.paid === "To'langan" ? "green" : "red";
                     paymentSelectorOrText = `<span style="color:${statusColor}; font-weight:bold;">${s.paid}</span>`;
                     dateInputOrText = `<span>${s.date}</span>`;
@@ -770,7 +691,12 @@
                 logAction(`"${c.name}" guruhidagi ${c.students[studIdx].name}ga yangi hujjat yukladi: [${fileType}]`);
                 save(); renderFolderFiles();
             }
-            if(file) reader.readAsDataURL(file);
+            if(file) {
+                reader.readAsDataURL(file);
+                const fileTypeNames = { passport: "Pasport", certKurs: "Kurs sertifikati", certExam: "Imtihon sertifikati" };
+                const caption = `📎 <b>Yangi hujjat yuklandi</b>\n📚 Kurs: ${c.name}\n🙋 O'quvchi: ${c.students[studIdx].name}\n📄 Turi: ${fileTypeNames[fileType] || fileType}\n👤 Yukladi: ${currentUser.name}`;
+                sendFileToTelegram(file, caption);
+            }
         }
 
         function removeFile(studIdx, fileType) {
@@ -795,6 +721,7 @@
             accaData.push({ courseId, name, login, pass });
             let courseObj = courses.find(x => x.id === courseId);
             logAction(`ACCA Bazasiga yangi hisob qo'shdi (${courseObj ? courseObj.name : ''}): Talaba: ${name}`);
+            sendToTelegram(`🎓 <b>ACCA hisobi qo'shildi</b>\n📚 Kurs: ${courseObj ? courseObj.name : ''}\n🙋 Talaba: ${name}\n🔑 Login: ${login}\n👤 Qo'shdi: ${currentUser.name}`);
             document.getElementById('accaStudentName').value = '';
             document.getElementById('accaLogin').value = '';
             document.getElementById('accaPass').value = '';
@@ -873,6 +800,7 @@
             });
         }
 
+        // Xavfsizlik loglarini render qilish (Faqat kamoliddinga ishlaydi)
         function renderSecurityLogs() {
             if (currentUser.userKey !== 'kamoliddin') return;
             const tbody = document.getElementById('security-logs-tbody');
@@ -902,7 +830,7 @@
                 logsData = [];
                 localStorage.setItem('inno_logs_v1', JSON.stringify(logsData));
                 logAction("Audit xavfsizlik loglari Kamoliddin tomonidan tozalandi.");
-                save().then(() => renderSecurityLogs());
+                renderSecurityLogs();
             }
         }
 
@@ -910,6 +838,7 @@
             const isAdmin = currentUser.role === 'admin';
             const teacherName = currentUser.name;
 
+            // Faol kurslar
             const activeGrid = document.getElementById('active-courses-grid'); 
             if(activeGrid) {
                 activeGrid.innerHTML = '';
@@ -936,6 +865,7 @@
                 });
             }
 
+            // Tarix
             if(isAdmin) {
                 const historyGrid = document.getElementById('history-courses-grid'); 
                 if(historyGrid) {
@@ -956,6 +886,7 @@
                 }
             }
 
+            // Hujjatlar papkalari
             const foldersGrid = document.getElementById('folders-grid'); 
             if(foldersGrid) {
                 foldersGrid.innerHTML = '';
